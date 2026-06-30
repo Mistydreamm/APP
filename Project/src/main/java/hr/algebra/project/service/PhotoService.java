@@ -1,5 +1,6 @@
 package hr.algebra.project.service;
 
+import hr.algebra.project.annotation.MonitorPerformance;
 import hr.algebra.project.model.AppUser;
 import hr.algebra.project.model.PackageType;
 import hr.algebra.project.model.Photo;
@@ -22,37 +23,31 @@ public class PhotoService {
 
     private final PhotoRepository photoRepository;
     private final LoggingService loggingService;
-    
-    @Value("${upload.dir}")
-    private String uploadDir;
+    private final StorageService storageService;
 
-    public PhotoService(PhotoRepository photoRepository, LoggingService loggingService) {
+    public PhotoService(PhotoRepository photoRepository, LoggingService loggingService, StorageService storageService) {
         this.photoRepository = photoRepository;
         this.loggingService = loggingService;
+        this.storageService = storageService;
+
     }
 
     public void init() {
-        try {
-            Files.createDirectories(Paths.get(uploadDir));
-        } catch (IOException e) {
-            throw new RuntimeException("Could not initialize upload folder!");
-        }
+        storageService.init();
     }
-
+    @MonitorPerformance
     public Photo uploadPhoto(MultipartFile file, String description, String hashtags, AppUser user) throws IOException {
         // Check limits
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
         long uploadsToday = photoRepository.countByAuthorAndUploadedAtAfter(user, startOfDay);
-        
+
         int limit = user.getPackageType() == PackageType.FREE ? 5 : 50; // FREE: 5, PRO: 50
         if (uploadsToday >= limit) {
             throw new RuntimeException("Upload limit reached for package " + user.getPackageType());
         }
 
         String originalFilename = file.getOriginalFilename();
-        String filename = UUID.randomUUID().toString() + "_" + originalFilename;
-        Path filepath = Paths.get(uploadDir, filename);
-        Files.copy(file.getInputStream(), filepath);
+        String filename = storageService.store(file);
 
         Photo photo = new Photo();
         photo.setFilename(filename);
@@ -74,11 +69,12 @@ public class PhotoService {
     public Photo getPhotoById(Long id) {
         return photoRepository.findById(id).orElse(null);
     }
-    
+
     public Path getPhotoPath(String filename) {
-        return Paths.get(uploadDir).resolve(filename);
+        return storageService.load(filename);
     }
 
+    @MonitorPerformance
     public List<Photo> searchPhotos(String filter) {
         List<Photo> byHashtags = photoRepository.findByHashtagsContainingIgnoreCase(filter);
         List<Photo> byAuthor = photoRepository.findByAuthorUsernameContainingIgnoreCase(filter);
@@ -97,19 +93,16 @@ public class PhotoService {
             }
         }
     }
-
+    @MonitorPerformance
     public void deletePhoto(Long id, String username, boolean isAdmin) {
-         Photo photo = getPhotoById(id);
-         if (photo != null) {
-             if (isAdmin || photo.getAuthor().getUsername().equals(username)) {
-                 try {
-                     Files.deleteIfExists(getPhotoPath(photo.getFilename()));
-                     photoRepository.delete(photo);
-                     loggingService.logAction(username, "DELETE", "Photo deleted: " + photo.getId());
-                 } catch (IOException e) {
-                     throw new RuntimeException("Failed to delete file");
-                 }
-             }
-         }
+        Photo photo = getPhotoById(id);
+        if (photo != null) {
+            if (isAdmin || photo.getAuthor().getUsername().equals(username)) {
+
+                storageService.delete(photo.getFilename());
+                photoRepository.delete(photo);
+                loggingService.logAction(username, "DELETE", "Photo deleted: " + photo.getId());
+            }
+        }
     }
 }
