@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Login - PhotoApp</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div th:replace="~{base :: .header}"></div>
+    <div class="container">
+        <div class="form-container" style="max-width: 400px; margin: 0 auto;">
+            <h2>Login</h2>
+            <div th:if="${param.error}" class="error">
+                Invalid username and password.
+            </div>
+            <div th:if="${param.logout}" style="color: green; margin-bottom: 15px;">
+                You have been logged out.
+            </div>
+            <form th:action="@{/login}" method="post">
+                <div><label> Username: <input type="text" name="username"/> </label></div>
+                <div><label> Password: <input type="password" name="password"/> </label></div>
+                <div><button type="submit">Sign In</button></div>
+            </form>
+            <p style="text-align: center; margin-top: 15px;">Don't have an account? <a th:href="@{/register}">Register here</a></p>
+        </div>
+    </div>
+</body>
+</html>

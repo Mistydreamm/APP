@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>PhotoApp</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div th:replace="~{base :: .header}"></div>
+    <div class="container">
+        <h1>Welcome to PhotoApp</h1>
+
+        <div class="search-bar">
+            <form th:action="@{/}" method="get">
+                <input type="text" name="search" placeholder="Search by hashtag or author" th:value="${search}">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+
+        <div sec:authorize="isAuthenticated()" class="upload-form">
+            <h3>Upload a Photo</h3>
+            <form th:action="@{/photos/upload}" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" required>
+                <input type="text" name="description" placeholder="Description">
+                <input type="text" name="hashtags" placeholder="Hashtags (comma-separated)">
+                <button type="submit">Upload</button>
+            </form>
+            <p th:if="${error}" class="error" th:text="${error}"></p>
+        </div>
+
+        <div class="photo-grid">
+            <div th:each="photo : ${photos}" class="photo-card">
+                <img th:src="@{/photos/view/{filename}(filename=${photo.filename})}" alt="Photo">
+                <div class="photo-card-body">
+                    <p><strong>Description:</strong> <span th:text="${photo.description}"></span></p>
+                    <p><strong>Author:</strong> <span th:text="${photo.author.username}"></span></p>
+                    <p><strong>Uploaded:</strong> <span th:text="${#temporals.format(photo.uploadedAt, 'dd-MM-yyyy HH:mm')}"></span></p>
+                    <p><strong>Hashtags:</strong> <span th:text="${photo.hashtags}"></span></p>
+                    <div class="actions">
+                        <a th:href="@{/photos/download/{id}(id=${photo.id})}">Download</a>
+                        <div sec:authorize="isAuthenticated()" style="width:100%">
+                            <div th:if="${#authentication.name == photo.author.username or #authorization.expression('hasRole(''ADMIN'')')}">
+                                <form th:action="@{/photos/edit/{id}(id=${photo.id})}" method="post">
+                                    <input type="text" name="description" th:value="${photo.description}" placeholder="New description">
+                                    <input type="text" name="hashtags" th:value="${photo.hashtags}" placeholder="New hashtags">
+                                    <button type="submit">Update</button>
+                                </form>
+                                <form th:action="@{/photos/delete/{id}(id=${photo.id})}" method="post">
+                                    <button type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

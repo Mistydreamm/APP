@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Register - PhotoApp</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div th:replace="~{base :: .header}"></div>
+    <div class="container">
+        <div class="form-container" style="max-width: 400px; margin: 0 auto;">
+            <h2>Register</h2>
+            <div th:if="${error}" class="error">
+                <span th:text="${error}"></span>
+            </div>
+            <form th:action="@{/register}" method="post">
+                <div><label> Username: <input type="text" name="username" required/> </label></div>
+                <div><label> Password: <input type="password" name="password" required/> </label></div>
+                <div>
+                    <label> Package:
+                        <select name="packageType">
+                            <option th:each="pkg : ${packages}" th:value="${pkg}" th:text="${pkg}"></option>
+                        </select>
+                    </label>
+                </div>
+                <div><button type="submit">Register</button></div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
