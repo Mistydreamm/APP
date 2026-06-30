@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  photo-app:
+    build: .
+    container_name: photo-app
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./uploads:/app/uploads # Persist uploaded photos on the local host filesystem
+      - db-data:/app/db # Docker-managed named volume to avoid host permission conflicts for non-root appuser
+    environment:
+      - SERVER_PORT=8081
+      - UPLOAD_DIR=/app/uploads
+    # HEALTH MONITORING: Checking app health status using Actuator health endpoint
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 90s # Increased start_period to allow slow startup of Spring Boot on development systems
+    # RESOURCE MANAGEMENT: Limit resources allocated to this container (cgroups)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50' # Max 50% CPU of 1 core
+          memory: 512M # Max 512 MB RAM
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090" # Expose Prometheus web interface
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus # Docker-managed named volume to avoid host permission conflicts
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M # Increased memory limit to prevent OOM kills
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3000:3000" # Expose Grafana dashboard interface
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Default password for admin login
+    volumes:
+      - grafana-data:/var/lib/grafana # Docker-managed named volume to avoid host permission conflicts
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M # Increased memory limit to prevent OOM kills
+
+# Docker-managed volumes declaration
+volumes:
+  prometheus-data:
+  grafana-data:
+  db-data:

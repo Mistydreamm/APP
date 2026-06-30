@@ -5,6 +5,7 @@ import hr.algebra.project.model.AppUser;
 import hr.algebra.project.model.PackageType;
 import hr.algebra.project.model.Photo;
 import hr.algebra.project.repository.PhotoRepository;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,17 +25,19 @@ public class PhotoService {
     private final PhotoRepository photoRepository;
     private final LoggingService loggingService;
     private final StorageService storageService;
+    private final MeterRegistry meterRegistry;
 
-    public PhotoService(PhotoRepository photoRepository, LoggingService loggingService, StorageService storageService) {
+    public PhotoService(PhotoRepository photoRepository, LoggingService loggingService, StorageService storageService, MeterRegistry meterRegistry) {
         this.photoRepository = photoRepository;
         this.loggingService = loggingService;
         this.storageService = storageService;
-        
+        this.meterRegistry = meterRegistry;
     }
 
     public void init() {
         storageService.init();
     }
+
     @MonitorPerformance
     public Photo uploadPhoto(MultipartFile file, String description, String hashtags, AppUser user) throws IOException {
         // Check limits
@@ -59,6 +62,10 @@ public class PhotoService {
 
         Photo saved = photoRepository.save(photo);
         loggingService.logAction(user.getUsername(), "UPLOAD", "Photo uploaded: " + originalFilename);
+
+        this.meterRegistry.counter("photo.uploads.total", "package_type", user.getPackageType().name())
+                .increment();
+
         return saved;
     }
 
@@ -95,6 +102,7 @@ public class PhotoService {
             }
         }
     }
+
     @MonitorPerformance
     public void deletePhoto(Long id, String username, boolean isAdmin) {
         Photo photo = getPhotoById(id);
@@ -107,11 +115,17 @@ public class PhotoService {
             }
         }
     }
+
     public java.util.Map<String, Long> getUploadStatsByUser() {
         return getAllPhotos().stream()
                 .collect(Collectors.groupingBy(
                         photo -> photo.getAuthor().getUsername(),
                         Collectors.counting()
                 ));
+    }
+
+    public void incrementDownloadCounter(String status) {
+        this.meterRegistry.counter("photo.downloads.total", "status", status)
+                .increment();
     }
 }

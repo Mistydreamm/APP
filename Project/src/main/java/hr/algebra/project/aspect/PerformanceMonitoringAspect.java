@@ -22,7 +22,7 @@ public class PerformanceMonitoringAspect {
             return joinPoint.proceed(); // Exécute la méthode cible
         } finally {
             long duration = System.currentTimeMillis() - start;
-            logger.info("AOP [Performance] - La méthode {} a pris {} ms à s'exécuter.",
+            logger.info(" [Performance] Method :  {} took {} ms to execute",
                     joinPoint.getSignature().toShortString(),
                     duration);
         }

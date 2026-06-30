@@ -75,7 +75,11 @@ public class PhotoController {
             if (resource.exists() || resource.isReadable()) {
                 String username = authentication != null ? authentication.getName() : "ANONYMOUS";
                 loggingService.logAction(username, "DOWNLOAD", "Downloaded photo: " + photo.getOriginalFilename());
-                
+
+
+
+                photoService.incrementDownloadCounter("SUCCESS");
+
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + photo.getOriginalFilename() + "\"")
                         .body(resource);
@@ -118,5 +122,12 @@ public class PhotoController {
         boolean isAdmin = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         photoService.deletePhoto(id, authentication.getName(), isAdmin);
         return "redirect:/";
+    }
+
+    // TEMPORARY: Test endpoint to trigger a 500 Internal Server Error
+    @GetMapping("/trigger-error")
+    @ResponseBody
+    public String triggerError() {
+        throw new RuntimeException("Simulated HTTP 500 Server Error for metrics testing");
     }
 }
