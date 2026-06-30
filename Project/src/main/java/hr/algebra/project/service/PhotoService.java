@@ -29,7 +29,7 @@ public class PhotoService {
         this.photoRepository = photoRepository;
         this.loggingService = loggingService;
         this.storageService = storageService;
-
+        
     }
 
     public void init() {
@@ -76,10 +76,12 @@ public class PhotoService {
 
     @MonitorPerformance
     public List<Photo> searchPhotos(String filter) {
-        List<Photo> byHashtags = photoRepository.findByHashtagsContainingIgnoreCase(filter);
-        List<Photo> byAuthor = photoRepository.findByAuthorUsernameContainingIgnoreCase(filter);
-        byHashtags.addAll(byAuthor);
-        return byHashtags.stream().distinct().collect(Collectors.toList());
+        return java.util.stream.Stream.concat(
+                        photoRepository.findByHashtagsContainingIgnoreCase(filter).stream(),
+                        photoRepository.findByAuthorUsernameContainingIgnoreCase(filter).stream()
+                )
+                .distinct()
+                .collect(Collectors.toList());
     }
 
     public void updatePhoto(Long id, String description, String hashtags, String username, boolean isAdmin) {
@@ -104,5 +106,12 @@ public class PhotoService {
                 loggingService.logAction(username, "DELETE", "Photo deleted: " + photo.getId());
             }
         }
+    }
+    public java.util.Map<String, Long> getUploadStatsByUser() {
+        return getAllPhotos().stream()
+                .collect(Collectors.groupingBy(
+                        photo -> photo.getAuthor().getUsername(),
+                        Collectors.counting()
+                ));
     }
 }

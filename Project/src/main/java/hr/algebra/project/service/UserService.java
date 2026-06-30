@@ -23,17 +23,16 @@ public class UserService {
     }
 
     public AppUser registerUser(String username, String password, PackageType packageType) {
-        if (userRepository.findByUsername(username).isPresent()) {
-            throw new RuntimeException("Username already exists");
-        }
-
+        userRepository.findByUsername(username)
+                .ifPresent(user -> {
+                    throw new RuntimeException("Username already exists");
+                });
         AppUser user = new AppUser();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(UserRole.ROLE_USER);
         user.setPackageType(packageType);
         user.setRegisteredAt(LocalDateTime.now());
-
         AppUser savedUser = userRepository.save(user);
         loggingService.logAction(username, "REGISTER", "User registered with package " + packageType);
         return savedUser;
