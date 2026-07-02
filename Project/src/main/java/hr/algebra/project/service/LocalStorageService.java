@@ -1,5 +1,6 @@
 package hr.algebra.project.service;
 
+import hr.algebra.project.annotation.MonitorPerformance;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -13,7 +14,7 @@ import java.util.UUID;
 public class LocalStorageService implements StorageService {
     private final Path rootLocation;
 
-    public LocalStorageService(@Value("$upload.dir")Path rootLocation) {
+    public LocalStorageService(@Value("${upload.dir}") Path rootLocation) {
         this.rootLocation = rootLocation;
         this.init();
     }
@@ -27,6 +28,7 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
+    @MonitorPerformance
     public String store(MultipartFile file) {
         try {
             if (file.isEmpty()) {

@@ -4,6 +4,7 @@ import hr.algebra.project.model.AppUser;
 import hr.algebra.project.model.PackageType;
 import hr.algebra.project.model.UserRole;
 import hr.algebra.project.repository.UserRepository;
+import hr.algebra.project.annotation.MonitorPerformance;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ public class UserService {
         this.loggingService = loggingService;
     }
 
+    @MonitorPerformance
     public AppUser registerUser(String username, String password, PackageType packageType) {
         userRepository.findByUsername(username)
                 .ifPresent(user -> {
